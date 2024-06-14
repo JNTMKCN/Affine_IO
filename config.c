@@ -17,6 +17,9 @@ static const int chuni_io_default_cells[] = {
     'S', 'S', 'S', 'S',
 };
 
+static const int chuni_io_default_ir[] = {
+    '/', '.', '\'', ';', ']', '['
+};
 void chuni_io_config_load(
         struct chuni_io_config *cfg,
         const wchar_t *filename)
@@ -40,4 +43,12 @@ void chuni_io_config_load(
     //            chuni_io_default_cells[i],
     //            filename);
     //}
+        for (i = 0 ; i < 6 ; i++) {
+        swprintf_s(key, _countof(key), L"ir%i", i + 1);
+        cfg->vk_ir[i] = GetPrivateProfileIntW(
+                L"ir",
+                key,
+                chuni_io_default_ir[i],
+                filename);
+    }
 }
