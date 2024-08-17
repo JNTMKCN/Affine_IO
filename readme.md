@@ -4,8 +4,8 @@ Affine IO
 添加对游戏内灯光的输出支持
 在segatools.ini中使用：
 `[led15093]
-; Enable emulation of the 15093-06 controlled lights, which handle the air tower 
-; RGBs and the rear LED panel (billboard) on the cabinet.
+; Enable emulation of the 15093-06 controlled lights, which handle the air tower \
+; RGBs and the rear LED panel (billboard) on the cabinet.\
 enable=1`
 
 `[led]
