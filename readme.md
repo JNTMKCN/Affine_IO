@@ -3,10 +3,10 @@ Affine IO
 本IO使用与官方串口协议相似的协议连接手台，但是在协议内添加了一些自定义命令，让同一个串口实现JVS板功能，如IR KEY，灯光，以及未来可能支持的Coin Key。
 添加对游戏内灯光的输出支持
 在segatools.ini中使用：
-`[led15093]
+[led15093]
 ; Enable emulation of the 15093-06 controlled lights, which handle the air tower \
 ; RGBs and the rear LED panel (billboard) on the cabinet.\
-enable=1`
+enable=1
 
 `[led]
 ; Output billboard LED strip data to a named pipe called "\\.\pipe\chuni_led"
