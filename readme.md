@@ -43,11 +43,11 @@ serialBaud=115200\
 ; Board 2 is the slider and has 31 LEDs:\
 ;   [0]-[31]: slider LEDs right to left BRG, alternating between keys and dividers\
 \
-编译DLL文件：\
+编译DLL文件：
 
-`gcc -shared -o affine.dll chuniio.c config.c dprintf.c ledoutput.c pipeimpl.c serialimpl.c serialslider.c`\
+`gcc -shared -o affine.dll chuniio.c config.c dprintf.c ledoutput.c pipeimpl.c serialimpl.c serialslider.c`
 
-在Segatool中使用：\
+在Segatool中使用：
 
 `[chuniio]
 ; If you wish to sideload a different chuniio, specify the DLL path here`\
