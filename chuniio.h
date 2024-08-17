@@ -8,12 +8,19 @@
    - 0x0100: Initial API version (assumed if chuni_io_get_api_version is not
      exported)
    - 0x0101: Fix IR beam mappings
+   - 0x0102: Add air tower led and billboard support
 */
 
 #include <windows.h>
 
 #include <stdbool.h>
 #include <stdint.h>
+
+enum {
+    CHUNI_IO_OPBTN_TEST = 0x01,
+    CHUNI_IO_OPBTN_SERVICE = 0x02,
+    CHUNI_IO_OPBTN_COIN = 0x04,
+};
 
 /* Get the version of the Chunithm IO API that this DLL supports. This
    function should return a positive 16-bit integer, where the high byte is
@@ -132,12 +139,46 @@ void chuni_io_slider_start(chuni_io_slider_callback_t callback);
 void chuni_io_slider_stop(void);
 
 /* Update the RGB lighting on the slider. A pointer to an array of 32 * 3 = 96
-   bytes is supplied. The illuminated areas on the touch slider are some
-   combination of rectangular regions and dividing lines between these regions
-   but the exact mapping of this lighting control buffer is still TBD.
+  bytes is supplied, organized in BRG format.
+   The first set of bytes is the right-most slider key, and from there the bytes
+   alternate between the dividers and the keys until the left-most key. 
+   There are 31 illuminated sections in total.
 
    Minimum API version: 0x0100 */
 
 void chuni_io_slider_set_leds(const uint8_t *rgb);
-void chuni_io_led_set_colors(uint8_t board,uint8_t *rgb);
+
+/* Initialize LED emulation. This function will be called before any
+   other chuni_io_led_*() function calls.
+
+   All subsequent calls may originate from arbitrary threads and some may
+   overlap with each other. Ensuring synchronization inside your IO DLL is
+   your responsibility. 
+
+   Minimum API version: 0x0102 */
+
 HRESULT chuni_io_led_init(void);
+
+/* Update the RGB LEDs. rgb is a pointer to an array of up to 63 * 3 = 189 bytes.
+
+   Chunithm uses two chains/boards with WS2811 protocol (each logical led corresponds to 3 physical leds). 
+   board 0 is on the left side and board 1 on the right side of the cab
+
+   Board 0 has 53 LEDs:
+     [0]-[49]: snakes through left half of billboard (first column starts at top)
+     [50]-[52]: left side partition LEDs
+   
+   Board 1 has 63 LEDs:
+     [0]-[59]: right half of billboard (first column starts at bottom)
+     [60]-[62]: right side partition LEDs
+   
+   Board 2 is the slider and has 31 LEDs:
+     [0]-[31]: slider LEDs right to left BRG, alternating between keys and dividers 
+
+   Each rgb value is comprised of 3 bytes in R,G,B order
+
+   NOTE: billboard strips have alternating direction (bottom to top, top to bottom, ...)
+
+   Minimum API version: 0x0102 */
+
+void chuni_io_led_set_colors(uint8_t board, uint8_t *rgb);

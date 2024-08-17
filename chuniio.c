@@ -3,12 +3,13 @@
 #include <process.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "chuniio.h"
 #include "config.h"
-
+#include "ledoutput.h"
 #include "serialslider.h"
-
+#include "dprintf.h"
 uint8_t Air_key_Status;
 uint8_t Serial_CMD_Flag;
 
@@ -34,7 +35,17 @@ uint16_t chuni_io_get_api_version(void)
 HRESULT chuni_io_jvs_init(void)
 {
     chuni_io_config_load(&chuni_io_cfg, L".\\segatools.ini");
-
+    
+    led_init_mutex = CreateMutex(
+        NULL,              // default security attributes
+        FALSE,             // initially not owned
+        NULL);             // unnamed mutex
+    
+    if (led_init_mutex == NULL)
+    {
+        return E_FAIL;
+    }
+    
     return S_OK;
 }
 
@@ -44,7 +55,7 @@ void chuni_io_jvs_read_coin_counter(uint16_t *out)
         return;
     }
 
-    if (GetAsyncKeyState(chuni_io_cfg.vk_coin)) {
+    if (GetAsyncKeyState(chuni_io_cfg.vk_coin) & 0x8000) {
         if (!chuni_io_coin) {
             chuni_io_coin = true;
             chuni_io_coins++;
@@ -60,15 +71,15 @@ void chuni_io_jvs_poll(uint8_t *opbtn, uint8_t *beams)
 {
     size_t i;
 
-    if (GetAsyncKeyState(chuni_io_cfg.vk_test)) {
-        *opbtn |= 0x01; /* Test */
+    if (GetAsyncKeyState(chuni_io_cfg.vk_test) & 0x8000) {
+        *opbtn |= CHUNI_IO_OPBTN_TEST;
     }
 
-    if (GetAsyncKeyState(chuni_io_cfg.vk_service)) {
-        *opbtn |= 0x02; /* Service */
+    if (GetAsyncKeyState(chuni_io_cfg.vk_service) & 0x8000) {
+        *opbtn |= CHUNI_IO_OPBTN_SERVICE;
     }
-    *beams = Air_key_Status;
-        if (chuni_io_cfg.vk_ir_emu) {
+
+    if (chuni_io_cfg.vk_ir_emu) {
         // Use emulated AIR
         if (GetAsyncKeyState(chuni_io_cfg.vk_ir_emu)) {
             if (chuni_io_hand_pos < 6) {
@@ -99,19 +110,19 @@ void chuni_io_jvs_poll(uint8_t *opbtn, uint8_t *beams)
 
 HRESULT chuni_io_slider_init(void)
 {
-	// Open ports
     open_port();
-    return S_OK;
+    return led_output_init(&chuni_io_cfg); // because of slider LEDs
 }
 
 void chuni_io_slider_start(chuni_io_slider_callback_t callback)
 {
     slider_start_air_scan();
     slider_start_scan();
+    BOOL status;
+
     if (chuni_io_slider_thread != NULL) {
         return;
     }
-
     InitializeCriticalSection(&cs);
     Queue* queue = createQueue(100);
     callback_context* ctx = (callback_context*)malloc(sizeof(callback_context));
@@ -119,12 +130,20 @@ void chuni_io_slider_start(chuni_io_slider_callback_t callback)
     ctx->queue = queue;
     // CreateThread(NULL, 0, sliderserial_read_thread, queue, 0, NULL);
     chuni_io_slider_thread = (HANDLE) _beginthreadex(NULL,0,chuni_io_slider_thread_proc,ctx,0,NULL);
+
+
+    chuni_io_slider_thread = (HANDLE) _beginthreadex(
+            NULL,
+            0,
+            chuni_io_slider_thread_proc,
+            ctx,
+            0,
+            NULL);
 }
 
 void chuni_io_slider_stop(void)
 {
     slider_stop_scan();
-
     if (chuni_io_slider_thread == NULL) {
         return;
     }
@@ -140,26 +159,7 @@ void chuni_io_slider_stop(void)
 void chuni_io_slider_set_leds(const uint8_t *rgb)
 {
     slider_send_leds(rgb);
-}
-
-void chuni_io_led_set_colors(uint8_t board,uint8_t *rgb_raw)
-{
-    // uint8_t air_rgb[9];
-    // if(board == 0){
-    //     for(uint8_t i=0;i<9;i++){
-    //         air_rgb[i] = rgb_raw[150+i];
-    //     }
-    // }
-    // else if(board == 1){
-    //     for(uint8_t i=0;i<9;i++){
-    //         air_rgb[i] = rgb_raw[180+i];
-    //     }
-    // }
-}
-
-HRESULT chuni_io_led_init(void)
-{
-    return S_OK;
+    led_output_update(2, rgb);
 }
 
 static unsigned int __stdcall chuni_io_slider_thread_proc(void* param)
@@ -216,4 +216,16 @@ static unsigned int __stdcall chuni_io_slider_thread_proc(void* param)
         // }
     }
     return 0;
+    free(ctx);
+}
+
+HRESULT chuni_io_led_init(void)
+{
+    return led_output_init(&chuni_io_cfg);
+    return S_OK;
+}
+
+void chuni_io_led_set_colors(uint8_t board, uint8_t *rgb)
+{ 
+    led_output_update(board, rgb);
 }
