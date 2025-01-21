@@ -13,7 +13,7 @@ Affine IO
 在Segatool中使用：
 
 `[chuniio]
-; If you wish to sideload a different chuniio, specify the DLL path here`
-`path=affine.dll`
+; If you wish to sideload a different chuniio, specify the DLL path here<br>
+path=affine.dll`
 
 
